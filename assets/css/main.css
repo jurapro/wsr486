@@ -23,3 +23,8 @@
     background-color: brown;
     border-radius: .5rem;
 }
+
+.ball {
+    background-color: cadetblue;
+    border-radius: 50%;
+}

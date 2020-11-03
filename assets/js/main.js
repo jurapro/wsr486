@@ -40,6 +40,38 @@ class Drawble {
             height: this.size.h + 'px',
         })
     }
+
+    //Проверка на столкновение с другим объектом
+    isCollision(element) {
+        let a = {
+            x1: this.position.x,
+            x2: this.position.x + this.size.w,
+            y1: this.position.y,
+            y2: this.position.y + this.size.h
+        }
+        let b = {
+            x1: element.position.x,
+            x2: element.position.x + element.size.w,
+            y1: element.position.y,
+            y2: element.position.y + element.size.h
+        }
+        return a.x1 < b.x2 && b.x1 < a.x2 && a.y1 < b.y2 && b.y1 < a.y2
+    }
+
+    //Проверка столкновения с левым краем
+    isLeftBorderCollision() {
+        return this.position.x < this.speedPerFrame;
+    }
+
+    //Проверка столкновения с правым краем
+    isRightBorderCollision() {
+        return this.position.x + this.size.w + this.speedPerFrame > this.game.$zone.width();
+    }
+
+    //Проверка столкновения с потолком
+    isTopBorderCollision() {
+        return this.position.y < this.speedPerFrame && this.offsets.y < 0;
+    }
 }
 
 class Player extends Drawble {
@@ -76,16 +108,53 @@ class Player extends Drawble {
     }
 
     update() {
+
         switch (true) {
             case this.keys.ArrowLeft:
+                if (this.isLeftBorderCollision()) {
+                    this.position.x = 0;
+                    break;
+                }
                 this.position.x -= this.speedPerFrame;
                 break;
             case this.keys.ArrowRight:
+                if (this.isRightBorderCollision()) {
+                    this.position.x = this.game.$zone.width() - this.size.w;
+                    break;
+                }
                 this.position.x += this.speedPerFrame;
                 break;
         }
     }
 
+}
+
+class Ball extends Drawble {
+    //Начальные параметры мяча
+    constructor(game) {
+        super(game);
+        this.size = {
+            w: 50,
+            h: 50,
+        };
+        this.position = {
+            x: this.game.$zone.width() / 2 - this.size.w / 2,
+            y: 0,
+        };
+        this.speedPerFrame = 10;
+        this.offsets.y = this.speedPerFrame;
+    }
+
+    update() {
+        if (this.isCollision(this.game.player) || this.isTopBorderCollision()) {
+            this.changeDirection();
+        }
+        super.update();
+    }
+
+    changeDirection() {
+        this.offsets.y *= -1;
+    }
 }
 
 class Game {
@@ -94,6 +163,7 @@ class Game {
         this.$zone = $('#game .elements');
         this.elements = [];
         this.player = this.generate(Player);
+        this.ball = this.generate(Ball);
     }
 
     //Генерация элемента
