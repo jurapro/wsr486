@@ -1,3 +1,9 @@
+function random(min, max) {
+    min = Math.ceil(min);
+    max = Math.floor(max);
+    return Math.floor(Math.random() * (max - min + 1)) + min; //Максимум и минимум включаются
+}
+
 class Drawble {
     //Базовые параметры всех объектов
     constructor(game) {
@@ -20,9 +26,7 @@ class Drawble {
 
     //Создание html элемента
     createElement() {
-        let $element = $(`<div class="element ${this.constructor.name.toLowerCase()}"></div>`);
-        this.game.$zone.append($element);
-        return $element;
+        return $(`<div class="element ${this.constructor.name.toLowerCase()}"></div>`);
     }
 
     //Обновление координат элемента
@@ -149,11 +153,50 @@ class Ball extends Drawble {
         if (this.isCollision(this.game.player) || this.isTopBorderCollision()) {
             this.changeDirection();
         }
+        if (this.isLeftBorderCollision() || this.isRightBorderCollision()) {
+            this.changeDirectionX();
+        }
+
         super.update();
     }
 
-    changeDirection() {
+    changeDirectionY() {
         this.offsets.y *= -1;
+    }
+
+    changeDirectionX() {
+        this.offsets.x *= -1;
+    }
+
+    changeDirection() {
+        if (random(0, 1)) {
+            this.changeDirectionY();
+        } else {
+            this.changeDirectionY();
+            this.offsets.x = random(-5, 5);
+        }
+    }
+}
+
+class Block extends Drawble {
+    constructor(game) {
+        super(game);
+        this.size = {
+            h: 50,
+            w: 200
+        }
+    }
+
+    update() {
+        if (this.isCollision(this.game.ball)) {
+            document.dispatchEvent(new CustomEvent(
+                'block-collision', {
+                    detail: {element: this}
+                }
+            ));
+            this.$element.remove();
+        }
+        super.update();
     }
 }
 
@@ -164,13 +207,50 @@ class Game {
         this.elements = [];
         this.player = this.generate(Player);
         this.ball = this.generate(Ball);
+        this.blocksGenerate(4);
+        this.bindEvents();
     }
 
     //Генерация элемента
     generate(ClassName) {
         let element = new ClassName(this);
         this.elements.push(element);
+        this.$zone.append(element.$element);
         return element;
+    }
+
+    //Генерация одного блока
+    blockGenerate(position) {
+        let block = this.generate(Block);
+        block.position = position;
+        return block;
+    }
+
+    //Генерация набора блоков
+    blocksGenerate(rows) {
+        let {w: blockW, h: blockH} = (new Block).size;
+
+        for (let y = 1; y <= rows; y++) {
+            for (let x = 50; x < this.$zone.width() - blockW; x += blockW + 50) {
+                let position = {x: x, y: y * (blockH + 50)};
+                this.blockGenerate(position);
+            }
+        }
+    }
+
+    //Прослушивание событий игры
+    bindEvents() {
+        document.addEventListener('block-collision', this.removeElement.bind(this));
+    }
+
+    //Обработчик события
+    removeElement(event) {
+        let element = event.detail.element;
+
+        let ind = this.elements.indexOf(element);
+        if (ind === -1) return false;
+
+        return this.elements.splice(ind, 1);
     }
 
     //Старт игры
@@ -193,6 +273,7 @@ class Game {
             element.draw();
         })
     }
+
 }
 
 const game = new Game();
