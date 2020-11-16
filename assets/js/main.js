@@ -4,7 +4,7 @@ function random(min, max) {
     return Math.floor(Math.random() * (max - min + 1)) + min; //Максимум и минимум включаются
 }
 
-class Drawble {
+class Drawable {
     //Базовые параметры всех объектов
     constructor(game) {
         this.game = game;
@@ -78,7 +78,7 @@ class Drawble {
     }
 }
 
-class Player extends Drawble {
+class Player extends Drawable {
     //Начальные параметры игрока
     constructor(game) {
         super(game);
@@ -133,7 +133,7 @@ class Player extends Drawble {
 
 }
 
-class Ball extends Drawble {
+class Ball extends Drawable {
     //Начальные параметры мяча
     constructor(game) {
         super(game);
@@ -147,6 +147,7 @@ class Ball extends Drawble {
         };
         this.speedPerFrame = 10;
         this.offsets.y = this.speedPerFrame;
+        this.bindEvents();
     }
 
     update() {
@@ -158,6 +159,11 @@ class Ball extends Drawble {
         }
 
         super.update();
+    }
+
+    //Прослушивание событий игры
+    bindEvents() {
+        document.addEventListener('block-collision', this.changeDirection.bind(this));
     }
 
     changeDirectionY() {
@@ -178,7 +184,7 @@ class Ball extends Drawble {
     }
 }
 
-class Block extends Drawble {
+class Block extends Drawable {
     constructor(game) {
         super(game);
         this.size = {
@@ -204,6 +210,14 @@ class Game {
     //Базовые настройки игры
     constructor() {
         this.$zone = $('#game .elements');
+        this.$panel = $('#game .panel');
+        this.options = {
+            score: 0,
+            pause: false
+        }
+        this.keys = {
+            Escape: false,
+        };
         this.elements = [];
         this.player = this.generate(Player);
         this.ball = this.generate(Ball);
@@ -240,16 +254,31 @@ class Game {
 
     //Прослушивание событий игры
     bindEvents() {
-        document.addEventListener('block-collision', this.removeElement.bind(this));
+        document.addEventListener('keyup', ev => this.changeKeyStatus(ev.code));
+
+        document.addEventListener('block-collision', this.blockCollision.bind(this));
     }
 
-    //Обработчик события
-    removeElement(event) {
+    //Смена состояния нажатой клавиши
+    changeKeyStatus(code, value) {
+        if (code in this.keys) {
+            this.keys[code] = !this.keys[code];
+        }
+    }
+
+
+    //Обработчик события block-collision
+    blockCollision(event) {
+        this.options.score++;
         let element = event.detail.element;
+        this.removeElement(element);
+    }
+
+    //Удаление элемента
+    removeElement(element) {
 
         let ind = this.elements.indexOf(element);
         if (ind === -1) return false;
-
         return this.elements.splice(ind, 1);
     }
 
@@ -261,7 +290,11 @@ class Game {
     //Бесконечный игровой цикл
     loop() {
         requestAnimationFrame(() => {
-            this.updateElements();
+            if (!this.options.pause) {
+                this.updateElements();
+
+            }
+            this.updateGame();
             this.loop();
         })
     }
@@ -274,6 +307,15 @@ class Game {
         })
     }
 
+    updateGame() {
+        this.options.pause = this.keys.Escape;
+        if (this.options.pause) {
+            this.$panel.addClass('pause');
+        } else {
+            this.$panel.removeClass('pause');
+        }
+        this.$panel.html(`<span class="score">Очки: ${this.options.score}</span>`);
+    }
 }
 
 const game = new Game();
