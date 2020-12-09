@@ -3,8 +3,9 @@
     margin: 0;
     box-sizing: border-box;
 }
+
 :root {
-    --w-panel:80px;
+    --w-panel: 80px;
 }
 
 #game {
@@ -18,6 +19,7 @@
     height: var(--w-panel);
 
     display: flex;
+    gap: 2rem;
     justify-content: center;
     align-items: center;
 }
@@ -26,9 +28,11 @@
     font-size: 1.5rem;
     color: white;
 }
+
 .pause {
     background-color: red;
 }
+
 .elements {
     width: 100%;
     height: calc(100% - var(--w-panel));
@@ -38,6 +42,7 @@
 .elements > div {
     position: absolute;
 }
+
 .player {
     background-color: brown;
     border-radius: .5rem;
@@ -50,4 +55,21 @@
 
 .block {
     background-color: chocolate;
+}
+
+.end-game {
+    width: 100%;
+    height: 100%;
+    left: 0;
+    top: 0;
+    position: absolute;
+    background-color: rgba(0,0,0,.5);
+
+    display: none;
+}
+.end-game .result {
+    width: 400px;
+    height: 400px;
+    margin: auto;
+    background-color: wheat;
 }

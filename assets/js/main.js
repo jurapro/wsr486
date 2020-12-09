@@ -76,6 +76,11 @@ class Drawable {
     isTopBorderCollision() {
         return this.position.y < this.speedPerFrame && this.offsets.y < 0;
     }
+
+    //Проверка столкновения с полом
+    isButtonBorderCollision() {
+        return this.position.y + this.speedPerFrame > this.game.$zone.height() && this.offsets.y > 0
+    }
 }
 
 class Player extends Drawable {
@@ -151,13 +156,21 @@ class Ball extends Drawable {
     }
 
     update() {
-        if (this.isCollision(this.game.player) || this.isTopBorderCollision()) {
+        if (this.isCollision(this.game.player)) {
+            this.changeDirection();
+            //Вызов события столкновения с ракеткой
+            document.dispatchEvent(new CustomEvent('player-collision'));
+        }
+        if (this.isTopBorderCollision()) {
             this.changeDirection();
         }
         if (this.isLeftBorderCollision() || this.isRightBorderCollision()) {
             this.changeDirectionX();
         }
-
+        if (this.isButtonBorderCollision()) {
+            //Событие падения мяча
+            document.dispatchEvent(new CustomEvent('missed-ball'));
+        }
         super.update();
     }
 
@@ -195,6 +208,7 @@ class Block extends Drawable {
 
     update() {
         if (this.isCollision(this.game.ball)) {
+            //Вызов события столкновения
             document.dispatchEvent(new CustomEvent(
                 'block-collision', {
                     detail: {element: this}
@@ -213,7 +227,12 @@ class Game {
         this.$panel = $('#game .panel');
         this.options = {
             score: 0,
-            pause: false
+            scoreRate: 0,
+            pause: false,
+            timer: {
+                second: 50,
+                tik: 0
+            }
         }
         this.keys = {
             Escape: false,
@@ -255,23 +274,30 @@ class Game {
     //Прослушивание событий игры
     bindEvents() {
         document.addEventListener('keyup', ev => this.changeKeyStatus(ev.code));
-
         document.addEventListener('block-collision', this.blockCollision.bind(this));
+        document.addEventListener('player-collision', this.playerCollision.bind(this));
+        document.addEventListener('missed-ball', this.endGame.bind(this));
     }
 
     //Смена состояния нажатой клавиши
-    changeKeyStatus(code, value) {
+    changeKeyStatus(code) {
         if (code in this.keys) {
             this.keys[code] = !this.keys[code];
         }
     }
 
-
     //Обработчик события block-collision
     blockCollision(event) {
-        this.options.score++;
+        this.options.score += this.options.scoreRate + 1;
+
+        this.options.scoreRate++;
         let element = event.detail.element;
         this.removeElement(element);
+    }
+
+    //Обработчик события player-collision
+    playerCollision() {
+        this.options.scoreRate = 0;
     }
 
     //Удаление элемента
@@ -292,9 +318,9 @@ class Game {
         requestAnimationFrame(() => {
             if (!this.options.pause) {
                 this.updateElements();
-
+                this.updateGame();
             }
-            this.updateGame();
+            this.updatePause();
             this.loop();
         })
     }
@@ -307,14 +333,55 @@ class Game {
         })
     }
 
+    //Обновление состояния игры
     updateGame() {
+        this.updateTime();
+        this.updatePanel();
+    }
+
+    //Отслеживание паузы
+    updatePause() {
         this.options.pause = this.keys.Escape;
         if (this.options.pause) {
             this.$panel.addClass('pause');
         } else {
             this.$panel.removeClass('pause');
         }
-        this.$panel.html(`<span class="score">Очки: ${this.options.score}</span>`);
+    }
+
+    //Обновление времени
+    updateTime() {
+        this.options.timer.tik++;
+        if (this.options.timer.tik === 60) {
+            this.options.timer.tik = 0;
+            this.options.timer.second++;
+        }
+    }
+
+    //Отрисовка параметров на верхней панели
+    updatePanel() {
+        this.$panel.html(`
+            <span class="score">Очки: ${this.options.score}</span>
+            <span class="timer">Таймер: ${this.getFormattedTime().min}:${this.getFormattedTime().sec}</span>`);
+    }
+
+    //Форматирование времени
+    getFormattedTime() {
+        let min = Math.floor(this.options.timer.second / 60);
+        min = (min < 10) ? '0' + min : min;
+        let sec = this.options.timer.second % 60;
+        sec = (sec < 10) ? '0' + sec : sec;
+
+        return {
+            min: min,
+            sec: sec
+        };
+    }
+
+    //Функция окончания игры
+    endGame() {
+        this.keys.Escape = true;
+        //alert('Вы проиграли');
     }
 }
 
