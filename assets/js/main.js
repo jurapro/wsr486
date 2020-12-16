@@ -225,22 +225,27 @@ class Game {
     constructor() {
         this.$zone = $('#game .elements');
         this.$panel = $('#game .panel');
+        this.$endGame = $('#game .end-game');
         this.options = {
             score: 0,
             scoreRate: 0,
+            status: 'process',
             pause: false,
             timer: {
-                second: 50,
+                second: 0,
                 tik: 0
             }
         }
         this.keys = {
             Escape: false,
         };
+
         this.elements = [];
-        this.player = this.generate(Player);
-        this.ball = this.generate(Ball);
-        this.blocksGenerate(4);
+        this.player = null;
+        this.ball = null;
+
+        this.newGame();
+
         this.bindEvents();
     }
 
@@ -276,7 +281,7 @@ class Game {
         document.addEventListener('keyup', ev => this.changeKeyStatus(ev.code));
         document.addEventListener('block-collision', this.blockCollision.bind(this));
         document.addEventListener('player-collision', this.playerCollision.bind(this));
-        document.addEventListener('missed-ball', this.endGame.bind(this));
+        document.addEventListener('missed-ball', this.losingGame.bind(this));
     }
 
     //Смена состояния нажатой клавиши
@@ -335,6 +340,9 @@ class Game {
 
     //Обновление состояния игры
     updateGame() {
+        if (this.isWin()) {
+            this.winGame();
+        }
         this.updateTime();
         this.updatePanel();
     }
@@ -378,11 +386,87 @@ class Game {
         };
     }
 
-    //Функция окончания игры
-    endGame() {
+    //Функция проигрыша
+    losingGame() {
         this.keys.Escape = true;
-        //alert('Вы проиграли');
+        this.options.status = 'losing';
+        this.showResult();
     }
+
+    //Функция проверки выигрыша
+    isWin() {
+        return this.elements.filter(el => el.constructor.name === 'Block').length === 0;
+    }
+
+    //Функция выигрыша
+    winGame() {
+        this.keys.Escape = true;
+        this.options.status = 'win';
+        this.showResult();
+    }
+
+    //Отображение экрана окончания игры
+    showResult() {
+        const result = this.$endGame.children('.result');
+        let message = '';
+
+        switch (this.options.status) {
+            case 'losing':
+                message = 'Вы проиграли';
+                result.css({
+                    backgroundColor: 'red'
+                });
+                break;
+            case 'win':
+                message = 'Вы выиграли';
+                result.css({
+                    backgroundColor: 'green'
+                });
+                break;
+        }
+
+        result.html(`<h2>${message}</h2>
+            <span class="score">Очки: ${this.options.score}</span>
+            <span class="timer">Таймер: ${this.getFormattedTime().min}:${this.getFormattedTime().sec}</span>
+            <button>Играть заново</button>
+            `);
+
+        const button = document.querySelector('.result button');
+        button.addEventListener('click', this.restart.bind(this));
+
+        this.$endGame.css({
+            display: 'flex'
+        });
+    }
+
+    //Функция рестарта игры
+    restart() {
+        this.newGame();
+        this.$endGame.css('display', 'none');
+    }
+
+    newGame() {
+        this.$zone.html('');
+        this.options = {
+            score: 0,
+            scoreRate: 0,
+            status: 'process',
+            pause: false,
+            timer: {
+                second: 0,
+                tik: 0
+            }
+        }
+        this.keys = {
+            Escape: false,
+        };
+
+        this.elements = [];
+        this.player = this.generate(Player);
+        this.ball = this.generate(Ball);
+        this.blocksGenerate(1);
+    }
+
 }
 
 const game = new Game();

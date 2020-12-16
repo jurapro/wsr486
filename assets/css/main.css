@@ -72,4 +72,20 @@
     height: 400px;
     margin: auto;
     background-color: wheat;
+    padding: 1rem;
+
+    display: flex;
+    flex-direction: column;
+    align-content: center;
+    justify-content: center;
+    text-align: center;
+    gap: 2rem;
+
+    font-size: 1.5rem;
+    color: white;
+}
+.result button {
+    width: 50%;
+    font-size: 1.5rem;
+    margin: auto;
 }
