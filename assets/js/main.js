@@ -387,9 +387,14 @@ class Game {
     }
 
     //Функция проигрыша
-    losingGame() {
+    async losingGame() {
         this.keys.Escape = true;
         this.options.status = 'losing';
+
+        let finalResult = {
+            'score': this.options.score,
+            'time': this.options.timer.second,
+        }
         this.showResult();
     }
 
@@ -399,14 +404,26 @@ class Game {
     }
 
     //Функция выигрыша
-    winGame() {
+    async winGame() {
         this.keys.Escape = true;
         this.options.status = 'win';
+        let finalResult = {
+            'score': this.options.score,
+            'time': this.options.timer.second,
+        }
+        await fetch('result.php', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json;charset=utf-8'
+            },
+            body: JSON.stringify(finalResult)
+        });
+
         this.showResult();
     }
 
     //Отображение экрана окончания игры
-    showResult() {
+    async showResult() {
         const result = this.$endGame.children('.result');
         let message = '';
 
@@ -429,7 +446,18 @@ class Game {
             <span class="score">Очки: ${this.options.score}</span>
             <span class="timer">Таймер: ${this.getFormattedTime().min}:${this.getFormattedTime().sec}</span>
             <button>Играть заново</button>
+            <h3>Лучшие результаты:</h3>
             `);
+
+        let response = await fetch('result.php');
+        let resultTable = await response.json();
+
+        Object.values(resultTable).forEach(el => {
+            let p = document.createElement('p');
+            p.innerHTML = `Очки: ${el.score} время: ${el.time}`;
+            result.append(p);
+        })
+
 
         const button = document.querySelector('.result button');
         button.addEventListener('click', this.restart.bind(this));
